@@ -3,7 +3,7 @@
   perSystem = { config, self', pkgs, lib, system, ... }:
 
     {
-      process-compose."url-shortner" = {
+      process-compose."url-shortner-services" = {
         imports = [
           inputs.services-flake.processComposeModules.default
         ];
@@ -15,7 +15,7 @@
       # Flake outputs
       devShells.services = pkgs.mkShell {
         nativeBuildInputs = [
-          config.process-compose."url-shortner".outputs.package
+          config.process-compose."url-shortner-services".outputs.package
         ];
       };
     };

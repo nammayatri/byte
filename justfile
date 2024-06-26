@@ -15,7 +15,7 @@ watch:
 
 # Run the project service dependencies
 services:
-    url-shortner
+    url-shortner-services
 
 # Fix and lint the project
 fix-warnings:
