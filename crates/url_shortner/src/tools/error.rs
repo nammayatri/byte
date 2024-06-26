@@ -7,7 +7,8 @@
 */
 
 use actix_web::{
-    http::{header::ContentType, StatusCode}, HttpResponse, ResponseError
+    http::{header::ContentType, StatusCode},
+    HttpResponse, ResponseError,
 };
 use serde::{Deserialize, Serialize};
 
@@ -25,6 +26,9 @@ pub enum AppError {
     PanicOccured(String),
     RedisError(String),
     AuthFailed(String),
+    UnprocessibleRequest(String),
+    LargePayloadSize(usize, usize),
+    RequestTimeout,
 }
 
 impl AppError {
@@ -41,9 +45,14 @@ impl AppError {
             AppError::InvalidRequest(err) => err.to_string(),
             AppError::PanicOccured(reason) => {
                 format!("Panic occured : {reason}")
-            },
+            }
             AppError::RedisError(err) => err.to_string(),
             AppError::AuthFailed(err) => err.to_string(),
+            AppError::UnprocessibleRequest(err) => err.to_string(),
+            AppError::LargePayloadSize(length, limit) => {
+                format!("Content length ({length} Bytes) greater than allowed maximum limit : ({limit} Bytes)")
+            }
+            _ => "Some Error Occured".to_string(),
         }
     }
 
@@ -54,6 +63,9 @@ impl AppError {
             AppError::PanicOccured(_) => "PANIC_OCCURED",
             AppError::RedisError(_) => "REDIS_ERROR",
             AppError::AuthFailed(_) => "AUTH_FAILED",
+            AppError::UnprocessibleRequest(_) => "UNPROCESSIBLE_REQUEST",
+            AppError::LargePayloadSize(_, _) => "LARGE_PAYLOAD_SIZE",
+            AppError::RequestTimeout => "REQUEST_TIMEOUT",
         }
         .to_string()
     }
@@ -73,6 +85,9 @@ impl ResponseError for AppError {
             AppError::InvalidRequest(_) => StatusCode::BAD_REQUEST,
             AppError::RedisError(_) => StatusCode::INTERNAL_SERVER_ERROR,
             AppError::AuthFailed(_) => StatusCode::UNAUTHORIZED,
+            AppError::UnprocessibleRequest(_) => StatusCode::UNPROCESSABLE_ENTITY,
+            AppError::LargePayloadSize(_, _) => StatusCode::PAYLOAD_TOO_LARGE,
+            AppError::RequestTimeout => StatusCode::REQUEST_TIMEOUT,
         }
     }
 }
