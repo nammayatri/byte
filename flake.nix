@@ -26,6 +26,7 @@
         inputs.treefmt-nix.flakeModule
         inputs.process-compose-flake.flakeModule
         inputs.pre-commit-hooks-nix.flakeModule
+        ./nix/rust.nix
         ./nix/services.nix
         ./nix/docker.nix
         ./nix/pre-commit.nix
@@ -54,6 +55,7 @@
             inputsFrom = [
               config.treefmt.build.devShell
               config.pre-commit.devShell
+              self'.devShells.rust
               self'.devShells.services
             ];
             shellHook = ''
