@@ -52,7 +52,7 @@ async fn start_server() -> std::io::Result<()> {
             .configure(api::handler)
     })
     .workers(workers.into())
-    .bind((Ipv4Addr::LOCALHOST, port))?
+    .bind((Ipv4Addr::UNSPECIFIED, port))?
     .run()
     .await?;
 
