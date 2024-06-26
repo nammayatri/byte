@@ -65,6 +65,7 @@
             '';
             nativeBuildInputs = with pkgs; [
               just
+              cargo
             ];
           };
 

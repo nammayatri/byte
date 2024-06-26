@@ -11,10 +11,7 @@ use actix_web::{
 };
 
 use crate::{
-    common::types::*, 
-    domain::action::public_api, 
-    environment::AppState, 
-    tools::error::AppError,
+    common::types::*, domain::action::public_api, environment::AppState, tools::error::AppError,
 };
 
 #[get("/{urlShortCode}")]
@@ -23,5 +20,5 @@ async fn redirect_to_url(
     path: Path<String>,
 ) -> Result<Redirect, AppError> {
     let url_short_code = UrlShortCode(path.into_inner());
-    Ok(public_api::redirect_to_url(app_state, url_short_code).await?)
+    public_api::redirect_to_url(app_state, url_short_code).await
 }

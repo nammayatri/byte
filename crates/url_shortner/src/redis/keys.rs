@@ -9,6 +9,6 @@ use crate::common::types::*;
 
 const REDIS_KEY_PREFIX: &str = "url-shortner";
 
-pub fn url_short_code_key(UrlShortCode(url_short_code): &UrlShortCode) -> String {
+pub fn url_short_code_key(UrlShortCode(url_short_code): UrlShortCode) -> String {
     format!("{REDIS_KEY_PREFIX}:url_short_code:{url_short_code}")
 }

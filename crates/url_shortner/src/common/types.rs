@@ -11,4 +11,4 @@ use serde::{Deserialize, Serialize};
 #[derive(Deserialize, Serialize, Clone, Copy, Debug, Eq, PartialEq, PartialOrd)]
 pub struct TimeStamp(pub DateTime<Utc>);
 #[derive(Serialize, Deserialize, Clone, Debug, Eq, Hash, PartialEq)]
-pub struct UrlShortCode (pub String);
+pub struct UrlShortCode(pub String);

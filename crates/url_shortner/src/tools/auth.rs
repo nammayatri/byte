@@ -10,10 +10,7 @@ use actix_web::HttpRequest;
 
 use super::error::AppError;
 
-pub fn authenticate(
-    internal_api_key: &str,
-    req: HttpRequest,
-) -> Result<(), AppError> {
+pub fn authenticate(internal_api_key: &str, req: HttpRequest) -> Result<(), AppError> {
     let token = req
         .headers()
         .get("x-api-key")
@@ -22,13 +19,13 @@ pub fn authenticate(
         .ok_or(AppError::InvalidRequest(
             "x-api-key (Header) is missing".to_string(),
         ))?;
-    
+
     if token != internal_api_key {
-        Err(
-            AppError::AuthFailed(format!("Invalid x-api-key: {}", token))
-        )
-    }
-    else {
+        Err(AppError::AuthFailed(format!(
+            "Invalid x-api-key: {}",
+            token
+        )))
+    } else {
         Ok(())
     }
 }

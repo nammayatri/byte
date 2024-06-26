@@ -8,16 +8,16 @@ the GNU Affero General Public License along with this program. If not, see <http
 
 use crate::{
     common::{
-        types::{TimeStamp, UrlShortCode}, 
-        utils::from_maybe
-    }, 
-    domain::types::internal::crud::*, 
-    environment::AppState, 
-    redis::commands::set_base_url_for_short_code, 
-    tools::error::AppError
+        types::{TimeStamp, UrlShortCode},
+        utils::from_maybe,
+    },
+    domain::types::internal::crud::*,
+    environment::AppState,
+    redis::commands::set_base_url_for_short_code,
+    tools::error::AppError,
 };
 use actix_web::web::Data;
-use chrono::{Utc, Duration};
+use chrono::{Duration, Utc};
 use rand::{
     distributions::{Alphanumeric, DistString},
     thread_rng,
@@ -29,35 +29,46 @@ pub async fn generate_url(
     app_state: Data<AppState>,
     req: GenerateShortUrlRequest,
 ) -> Result<GenerateShortUrlResponse, AppError> {
-    
     println!("Generate short url req: {:?}", req);
 
-    let base_url = Url::parse(&req.base_url).map_err(|error| {
-        AppError::InvalidRequest(format!("URL parsing failed: {}", error))
-    })?;
+    let base_url = Url::parse(&req.base_url)
+        .map_err(|error| AppError::InvalidRequest(format!("URL parsing failed: {}", error)))?;
 
     println!("Parsed URL: {:?}", base_url);
-    
-    let expiry_seconds: Option<u32> = req.expiry_in_hours.and_then(|hours| Some(3600 * Into::<u32>::into(hours)));
+
+    let expiry_seconds: Option<u32> = req
+        .expiry_in_hours
+        .map(|hours| 3600 * Into::<u32>::into(hours));
     let redis_expiry_in_s = from_maybe(expiry_seconds, app_state.redis_expiry);
 
-    let UrlShortCode(final_short_code) = 
-        match req.custom_short_code {
-            Some(custom_short_code) => {
-                set_custom_code(&base_url, &custom_short_code, redis_expiry_in_s, &app_state.redis_pool).await?;
-                custom_short_code
-            },
-            None => {
-                let final_short_code = set_base_url(&base_url, redis_expiry_in_s, &app_state).await?;
-                final_short_code.ok_or_else(|| {
-                    AppError::InternalError(format!("Failed to generate unique short code after {} retries", app_state.max_retries_for_shortening))
-                })?
-            }
-        };
+    let UrlShortCode(final_short_code) = match req.custom_short_code {
+        Some(custom_short_code) => {
+            set_custom_code(
+                &base_url,
+                &custom_short_code,
+                redis_expiry_in_s,
+                &app_state.redis_pool,
+            )
+            .await?;
+            custom_short_code
+        }
+        None => {
+            let final_short_code = set_base_url(&base_url, redis_expiry_in_s, &app_state).await?;
+            final_short_code.ok_or_else(|| {
+                AppError::InternalError(format!(
+                    "Failed to generate unique short code after {} retries",
+                    app_state.max_retries_for_shortening
+                ))
+            })?
+        }
+    };
 
     let url_expiry = TimeStamp(Utc::now() + Duration::seconds(redis_expiry_in_s.into()));
     let short_url = format!("{}/{}", app_state.shortened_base_url, final_short_code);
-    println!("Generated short url: {} with expiry ts: {:?}", short_url, url_expiry.0);
+    println!(
+        "Generated short url: {} with expiry ts: {:?}",
+        short_url, url_expiry.0
+    );
 
     Ok(GenerateShortUrlResponse {
         short_url,
@@ -65,29 +76,27 @@ pub async fn generate_url(
     })
 }
 
-async fn set_custom_code (
+async fn set_custom_code(
     base_url: &Url,
     short_code: &UrlShortCode,
     redis_expiry: u32,
     persistent_redis: &RedisConnectionPool,
 ) -> Result<(), AppError> {
-    let is_key_set = set_base_url_for_short_code(
-        base_url,
-        &short_code, 
-        persistent_redis,
-        redis_expiry
-    ).await?;
+    let is_key_set =
+        set_base_url_for_short_code(base_url, short_code.clone(), persistent_redis, redis_expiry)
+            .await?;
 
-    if ! is_key_set {
+    if !is_key_set {
         let UrlShortCode(code) = short_code;
-        Err(AppError::InvalidRequest(format!("Short code: {code} already exists")))
-    }
-    else {
+        Err(AppError::InvalidRequest(format!(
+            "Short code: {code} already exists"
+        )))
+    } else {
         Ok(())
     }
 }
 
-async fn set_base_url (
+async fn set_base_url(
     base_url: &Url,
     redis_expiry: u32,
     app_state: &Data<AppState>,
@@ -100,19 +109,19 @@ async fn set_base_url (
         let short_code = UrlShortCode(Alphanumeric.sample_string(&mut rng, short_code_len));
         let is_key_set = set_base_url_for_short_code(
             base_url,
-            &short_code,
+            short_code.clone(),
             &app_state.redis_pool,
             redis_expiry,
-        ).await?;
+        )
+        .await?;
 
         if is_key_set {
             final_short_code = Some(short_code);
             break;
-        }
-        else {
+        } else {
             retries_rem -= 1;
         }
-    };
+    }
 
     Ok(final_short_code)
 }

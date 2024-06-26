@@ -6,11 +6,10 @@
     the GNU Affero General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+use crate::tools::logger::LoggerConfig;
 use serde::Deserialize;
 use shared::redis::types::{RedisConnectionPool, RedisSettings};
 use std::sync::Arc;
-
-use crate::tools::logger::LoggerConfig;
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct AppConfig {
