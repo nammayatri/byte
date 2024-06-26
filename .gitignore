@@ -2,3 +2,4 @@
 local-redis-data
 .direnv
 data
+/.pre-commit-config.yaml
