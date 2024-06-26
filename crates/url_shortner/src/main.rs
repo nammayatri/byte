@@ -8,11 +8,17 @@
 
 use actix_web::{web, App, HttpServer};
 use tracing::error;
+use tracing_actix_web::TracingLogger;
 
 use std::net::Ipv4Addr;
 use url_shortner::{
-    domain::api, 
+    domain::api,
     environment::{AppConfig, AppState},
+    middleware::{
+        CheckContentLength, DomainRootSpanBuilder, IncomingRequestMetrics, LogIncomingRequestBody,
+        RequestTimeout,
+    },
+    tools::{error::AppError, logger::setup_tracing, prometheus::prometheus_metrics},
 };
 
 fn read_dhall_config(config_path: &str) -> Result<AppConfig, String> {
@@ -33,6 +39,8 @@ async fn start_server() -> std::io::Result<()> {
 
     println!("Starting server appConfig: {:?}", app_config.clone());
 
+    let _guard = setup_tracing(app_config.logger_cfg);
+
     std::panic::set_hook(Box::new(|panic_info| {
         println!("Panic occurred: {:?}", panic_info);
         error!("Panic occurred: {:?}", panic_info);
@@ -40,15 +48,30 @@ async fn start_server() -> std::io::Result<()> {
 
     let port = app_config.port;
     let workers = app_config.workers;
+    let max_allowed_req_size = app_config.max_allowed_req_size;
 
     let app_state = AppState::new(app_config).await;
     println!("App state created");
 
     let data = web::Data::new(app_state);
 
+    let prometheus = prometheus_metrics();
+
     HttpServer::new(move || {
         App::new()
             .app_data(data.clone())
+            .app_data(
+                web::JsonConfig::default()
+                    .limit(max_allowed_req_size)
+                    .error_handler(|err, _| AppError::UnprocessibleRequest(err.to_string()).into()),
+            )
+            .app_data(web::PayloadConfig::default().limit(max_allowed_req_size))
+            .wrap(RequestTimeout)
+            .wrap(CheckContentLength)
+            .wrap(LogIncomingRequestBody)
+            .wrap(IncomingRequestMetrics)
+            .wrap(TracingLogger::<DomainRootSpanBuilder>::new())
+            .wrap(prometheus.clone())
             .configure(api::handler)
     })
     .workers(workers.into())
@@ -58,7 +81,6 @@ async fn start_server() -> std::io::Result<()> {
 
     Ok(())
 }
-            
 
 fn main() {
     start_server().expect("Failed to start server");
