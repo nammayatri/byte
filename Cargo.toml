@@ -1,0 +1,6 @@
+[workspace]
+resolver = "2"
+members = ["crates/*"]
+package.edition = "2021"
+package.license = "AGPL-3.0-or-later"
+package.version = "0.1.0"
