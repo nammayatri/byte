@@ -1,2 +1,4 @@
 /target
 local-redis-data
+.direnv
+data
