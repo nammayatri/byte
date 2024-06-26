@@ -5,17 +5,15 @@
     or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details. You should have received a copy of
     the GNU Affero General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
+use crate::{
+    domain::{action::internal::crud, types::internal::crud::*},
+    environment::AppState,
+    tools::{auth::authenticate, error::AppError},
+};
 use actix_web::{
     post,
     web::{Data, Json},
     HttpRequest,
-};
-use crate::{
-    domain::{
-        action::internal::crud, 
-        types::internal::crud::*
-    }, 
-    environment::AppState, tools::{auth::authenticate, error::AppError}
 };
 
 #[post("/internal/generateShortUrl")]
@@ -24,10 +22,9 @@ async fn generate_url(
     req: HttpRequest,
     param_obj: Json<GenerateShortUrlRequest>,
 ) -> Result<Json<GenerateShortUrlResponse>, AppError> {
-
     authenticate(&data.internal_auth_api_key, req)?;
 
     let req_body = param_obj.into_inner();
-    
+
     Ok(Json(crud::generate_url(data, req_body).await?))
 }

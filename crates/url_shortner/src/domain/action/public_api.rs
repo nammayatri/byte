@@ -5,28 +5,31 @@ is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; wit
 or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details. You should have received a copy of
 the GNU Affero General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
-use actix_web::web::{Data, Redirect};
 use crate::{
-    common::types::UrlShortCode, environment::AppState, 
-    redis::commands::*, 
-    tools::error::AppError
+    common::types::UrlShortCode, environment::AppState, redis::commands::*, tools::error::AppError,
 };
+use actix_web::web::{Data, Redirect};
 
 pub async fn redirect_to_url(
     app_state: Data<AppState>,
     url_short_code: UrlShortCode,
 ) -> Result<Redirect, AppError> {
-    println!("redirect request to url with short code: {:?}", url_short_code);
+    println!(
+        "redirect request to url with short code: {:?}",
+        url_short_code
+    );
 
-    let mb_base_url = get_base_url_by_short_code(&url_short_code, &app_state.redis_pool).await?;
+    let mb_base_url =
+        get_base_url_by_short_code(url_short_code.clone(), &app_state.redis_pool).await?;
 
     match mb_base_url {
         Some(base_url) => {
             println!("redirecting to: {}", base_url);
             Ok(Redirect::to(base_url.to_string()))
-        },
-        None => Err(AppError::
-            InvalidRequest(format!("No URL found for short code: {}", url_short_code.0))
-        )
+        }
+        None => Err(AppError::InvalidRequest(format!(
+            "No URL found for short code: {}",
+            url_short_code.0
+        ))),
     }
 }
