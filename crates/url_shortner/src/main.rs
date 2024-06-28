@@ -7,10 +7,10 @@
 */
 
 use actix_web::{web, App, HttpServer};
-use tracing::error;
+use tracing::*;
 use tracing_actix_web::TracingLogger;
 
-use std::net::Ipv4Addr;
+use std::{env::var, net::Ipv4Addr};
 use url_shortner::{
     domain::api,
     environment::{AppConfig, AppState},
@@ -31,7 +31,8 @@ fn read_dhall_config(config_path: &str) -> Result<AppConfig, String> {
 
 #[actix_web::main]
 async fn start_server() -> std::io::Result<()> {
-    let dhall_config_path = "./dhall-configs/dev/url-shortner.dhall".to_string();
+    let dhall_config_path = var("DHALL_CONFIG_PATH")
+        .unwrap_or_else(|_| "./dhall-configs/dev/url-shortner.dhall".to_string());
     let app_config: AppConfig = read_dhall_config(&dhall_config_path).unwrap_or_else(|err| {
         println!("{:?}", err);
         std::process::exit(1);
@@ -42,7 +43,6 @@ async fn start_server() -> std::io::Result<()> {
     let _guard = setup_tracing(app_config.logger_cfg);
 
     std::panic::set_hook(Box::new(|panic_info| {
-        println!("Panic occurred: {:?}", panic_info);
         error!("Panic occurred: {:?}", panic_info);
     }));
 
@@ -51,7 +51,7 @@ async fn start_server() -> std::io::Result<()> {
     let max_allowed_req_size = app_config.max_allowed_req_size;
 
     let app_state = AppState::new(app_config).await;
-    println!("App state created");
+    info!("App state created");
 
     let data = web::Data::new(app_state);
 
