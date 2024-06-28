@@ -9,12 +9,13 @@ use crate::{
     common::types::UrlShortCode, environment::AppState, redis::commands::*, tools::error::AppError,
 };
 use actix_web::web::{Data, Redirect};
+use tracing::*;
 
 pub async fn redirect_to_url(
     app_state: Data<AppState>,
     url_short_code: UrlShortCode,
 ) -> Result<Redirect, AppError> {
-    println!(
+    info!(
         "redirect request to url with short code: {:?}",
         url_short_code
     );
@@ -24,7 +25,7 @@ pub async fn redirect_to_url(
 
     match mb_base_url {
         Some(base_url) => {
-            println!("redirecting to: {}", base_url);
+            info!("redirecting to: {}", base_url);
             Ok(Redirect::to(base_url.to_string()))
         }
         None => Err(AppError::InvalidRequest(format!(

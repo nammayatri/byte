@@ -24,17 +24,18 @@ use rand::{
 };
 use reqwest::Url;
 use shared::redis::types::RedisConnectionPool;
+use tracing::*;
 
 pub async fn generate_url(
     app_state: Data<AppState>,
     req: GenerateShortUrlRequest,
 ) -> Result<GenerateShortUrlResponse, AppError> {
-    println!("Generate short url req: {:?}", req);
+    info!("Generate short url req: {:?}", req);
 
     let base_url = Url::parse(&req.base_url)
         .map_err(|error| AppError::InvalidRequest(format!("URL parsing failed: {}", error)))?;
 
-    println!("Parsed URL: {:?}", base_url);
+    info!("Parsed URL: {:?}", base_url);
 
     let expiry_seconds: Option<u32> = req
         .expiry_in_hours
@@ -65,7 +66,7 @@ pub async fn generate_url(
 
     let url_expiry = TimeStamp(Utc::now() + Duration::seconds(redis_expiry_in_s.into()));
     let short_url = format!("{}/{}", app_state.shortened_base_url, final_short_code);
-    println!(
+    info!(
         "Generated short url: {} with expiry ts: {:?}",
         short_url, url_expiry.0
     );
