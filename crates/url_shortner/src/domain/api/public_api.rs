@@ -22,3 +22,8 @@ async fn redirect_to_url(
     let url_short_code = UrlShortCode(path.into_inner());
     public_api::redirect_to_url(app_state, url_short_code).await
 }
+
+#[get("/healthCheck")]
+async fn health_check() -> Result<String, AppError> {
+    Ok("Service is Up".to_string())
+}
