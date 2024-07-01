@@ -13,5 +13,6 @@ use actix_web::web::ServiceConfig;
 pub fn handler(config: &mut ServiceConfig) {
     config
         .service(internal::crud::generate_url)
+        .service(public_api::health_check)
         .service(public_api::redirect_to_url);
 }
