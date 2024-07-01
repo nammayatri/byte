@@ -25,6 +25,7 @@ pub struct AppConfig {
     pub max_retries_for_shortening: u8,
     pub log_unprocessible_req_body: Vec<String>,
     pub max_allowed_req_size: usize,
+    pub expired_short_code_fallback_url: String,
 }
 
 #[derive(Clone)]
@@ -41,6 +42,7 @@ pub struct AppState {
     pub max_retries_for_shortening: u8,
     pub log_unprocessible_req_body: Vec<String>,
     pub max_allowed_req_size: usize,
+    pub expired_short_code_fallback_url: String,
 }
 
 impl AppState {
@@ -64,6 +66,7 @@ impl AppState {
             max_retries_for_shortening: app_config.max_retries_for_shortening,
             log_unprocessible_req_body: app_config.log_unprocessible_req_body,
             max_allowed_req_size: app_config.max_allowed_req_size,
+            expired_short_code_fallback_url: app_config.expired_short_code_fallback_url,
         }
     }
 }

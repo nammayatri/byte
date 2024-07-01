@@ -33,4 +33,5 @@ in {
     short_code_length = 6,
     shortened_base_url = "http://localhost:9023",
     max_retries_for_shortening = 5,
+    expired_short_code_fallback_url = "https://nammayatri.in",
 }

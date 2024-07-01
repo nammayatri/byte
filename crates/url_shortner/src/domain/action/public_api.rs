@@ -28,9 +28,11 @@ pub async fn redirect_to_url(
             info!("redirecting to: {}", base_url);
             Ok(Redirect::to(base_url.to_string()))
         }
-        None => Err(AppError::InvalidRequest(format!(
-            "No URL found for short code: {}",
-            url_short_code.0
-        ))),
+        None => {
+            error!("No URL found for short code: {}", url_short_code.0);
+            Ok(Redirect::to(
+                app_state.expired_short_code_fallback_url.to_string(),
+            ))
+        }
     }
 }
