@@ -14,5 +14,6 @@ pub fn handler(config: &mut ServiceConfig) {
     config
         .service(internal::crud::generate_url)
         .service(public_api::health_check)
-        .service(public_api::redirect_to_url);
+        .service(public_api::redirect_to_url)
+        .service(public_api::redirect_to_url_via_query_params);
 }

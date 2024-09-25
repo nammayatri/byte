@@ -5,22 +5,26 @@
     or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details. You should have received a copy of
     the GNU Affero General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
-use crate::common::types::*;
-use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct GenerateShortUrlRequest {
-    pub base_url: String,
-    pub custom_short_code: Option<UrlShortCode>,
-    pub short_code_length: Option<u8>,
-    pub expiry_in_hours: Option<u8>,
-    pub url_category: Option<String>,
-}
+use actix_web::web::Data;
 
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct GenerateShortUrlResponse {
-    pub short_url: String,
-    pub url_expiry: TimeStamp,
+use crate::environment::AppState;
+
+use super::error::AppError;
+
+pub fn is_valid_url_category(
+    url_category: String,
+    app_state: Data<AppState>,
+) -> Result<(), AppError> {
+    if !app_state
+        .expired_short_code_fallback_url_hashmap
+        .contains_key(&url_category)
+    {
+        Err(AppError::InvalidRequest(format!(
+            "Invalid url_category: {}",
+            url_category
+        )))
+    } else {
+        Ok(())
+    }
 }

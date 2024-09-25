@@ -14,7 +14,7 @@ use crate::{
     domain::types::internal::crud::*,
     environment::AppState,
     redis::commands::set_base_url_for_short_code,
-    tools::error::AppError,
+    tools::{error::AppError, validator},
 };
 use actix_web::web::Data;
 use chrono::{Duration, Utc};
@@ -34,6 +34,11 @@ pub async fn generate_url(
 
     let base_url = Url::parse(&req.base_url)
         .map_err(|error| AppError::InvalidRequest(format!("URL parsing failed: {}", error)))?;
+
+    req.url_category
+        .clone()
+        .map(|category| validator::is_valid_url_category(category, app_state.clone()))
+        .unwrap_or(Ok(()))?;
 
     info!("Parsed URL: {:?}", base_url);
 
@@ -64,8 +69,16 @@ pub async fn generate_url(
         }
     };
 
+    let final_short_code_formatted = req
+        .url_category
+        .map(|category| format!("?{}={}", category, final_short_code))
+        .unwrap_or(format!("/{}", final_short_code));
+
     let url_expiry = TimeStamp(Utc::now() + Duration::seconds(redis_expiry_in_s.into()));
-    let short_url = format!("{}/{}", app_state.shortened_base_url, final_short_code);
+    let short_url = format!(
+        "{}{}",
+        app_state.shortened_base_url, final_short_code_formatted
+    );
     info!(
         "Generated short url: {} with expiry ts: {:?}",
         short_url, url_expiry.0
