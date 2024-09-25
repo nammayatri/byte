@@ -20,6 +20,11 @@ let logger_cfg = {
     log_to_file = False
 }
 
+let expired_short_code_fallback_url_map = {
+    mtb = "https://nammayatri.in/mtb",
+    rtk = "https://nammayatri.in/rtk",
+}
+
 in {
     port = 9023,
     workers = 1,
@@ -33,5 +38,6 @@ in {
     short_code_length = 6,
     shortened_base_url = "http://localhost:9023",
     max_retries_for_shortening = 5,
-    expired_short_code_fallback_url = "https://nammayatri.in",
+    default_fallback_url = "https://nammayatri.in",
+    expired_short_code_fallback_url_map,
 }

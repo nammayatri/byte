@@ -14,6 +14,7 @@ use tracing::*;
 pub async fn redirect_to_url(
     app_state: Data<AppState>,
     url_short_code: UrlShortCode,
+    url_category: Option<String>,
 ) -> Result<Redirect, AppError> {
     info!(
         "redirect request to url with short code: {:?}",
@@ -30,9 +31,15 @@ pub async fn redirect_to_url(
         }
         None => {
             error!("No URL found for short code: {}", url_short_code.0);
-            Ok(Redirect::to(
-                app_state.expired_short_code_fallback_url.to_string(),
-            ))
+            let fallback_url = url_category
+                .and_then(|category| {
+                    app_state
+                        .expired_short_code_fallback_url_hashmap
+                        .get(&category)
+                        .cloned()
+                })
+                .unwrap_or(app_state.default_fallback_url.clone());
+            Ok(Redirect::to(fallback_url.clone()))
         }
     }
 }
