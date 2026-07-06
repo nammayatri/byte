@@ -1,0 +1,57 @@
+name: Docker Image (Main Push)
+
+on:
+  push:
+    branches:
+      - "main"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  docker-push:
+    name: Build And Push Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Full history so nix flakes can resolve self.rev (shallow clones
+          # break fetchGit and would produce the "dev" image tag)
+          fetch-depth: 0
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Setup Cachix
+        uses: cachix/cachix-action@v15
+        with:
+          name: nammayatri
+          skipPush: true
+
+      - name: Build Docker image
+        id: build
+        run: |
+          nix build .#dockerImage --out-link ./docker-result -L
+          # imageName already contains the ghcr.io/ prefix (see nix/docker.nix)
+          IMAGE="$(nix eval --raw .#dockerImage.imageName):$(nix eval --raw .#dockerImage.imageTag)"
+          echo "image=${IMAGE}" >> $GITHUB_OUTPUT
+
+      - name: Push Docker image
+        env:
+          DOCKER_REGISTRY: ghcr.io
+          IMAGE: ${{ steps.build.outputs.image }}
+        run: |
+          gunzip -c ./docker-result > image.tar || cp ./docker-result image.tar
+          echo "${{ secrets.GITHUB_TOKEN }}" | nix run nixpkgs#crane -- auth login ${DOCKER_REGISTRY} -u "${{ github.actor }}" --password-stdin
+          nix run nixpkgs#crane -- push image.tar "${IMAGE}"
+          nix run nixpkgs#crane -- auth logout ${DOCKER_REGISTRY}
