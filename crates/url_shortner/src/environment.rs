@@ -17,6 +17,7 @@ pub struct AppConfig {
     pub workers: u8,
     pub logger_cfg: LoggerConfig,
     pub redis_cfg: RedisSettings,
+    pub secondary_redis_cfg: Option<RedisSettings>,
     pub redis_expiry: u32,
     pub request_timeout: u64,
     pub internal_auth_api_key: String,
@@ -34,6 +35,7 @@ pub struct AppState {
     pub port: u16,
     pub workers: u8,
     pub redis_pool: Arc<RedisConnectionPool>,
+    pub secondary_redis_pool: Option<Arc<RedisConnectionPool>>,
     pub logger_cfg: LoggerConfig,
     pub redis_expiry: u32,
     pub request_timeout: u64,
@@ -55,11 +57,21 @@ impl AppState {
                 .expect("Failed to create Redis connection pool"),
         );
 
+        let secondary_redis_pool = match app_config.secondary_redis_cfg {
+            Some(secondary_redis_cfg) => Some(Arc::new(
+                RedisConnectionPool::new(secondary_redis_cfg, None)
+                    .await
+                    .expect("Failed to create secondary Redis connection pool"),
+            )),
+            None => None,
+        };
+
         AppState {
             port: app_config.port,
             workers: app_config.workers,
             logger_cfg: app_config.logger_cfg,
             redis_pool: persistent_redis,
+            secondary_redis_pool,
             redis_expiry: app_config.redis_expiry,
             request_timeout: app_config.request_timeout,
             internal_auth_api_key: app_config.internal_auth_api_key,

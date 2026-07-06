@@ -21,25 +21,23 @@ pub async fn redirect_to_url(
         url_short_code
     );
 
-    let mb_base_url =
-        get_base_url_by_short_code(url_short_code.clone(), &app_state.redis_pool).await?;
+    let fallback_url = url_category
+        .and_then(|category| {
+            app_state
+                .expired_short_code_fallback_url_hashmap
+                .get(&category)
+                .cloned()
+        })
+        .unwrap_or(app_state.default_fallback_url.clone());
 
-    match mb_base_url {
-        Some(base_url) => {
-            info!("redirecting to: {}", base_url);
-            Ok(Redirect::to(base_url.to_string()))
-        }
-        None => {
-            error!("No URL found for short code: {}", url_short_code.0);
-            let fallback_url = url_category
-                .and_then(|category| {
-                    app_state
-                        .expired_short_code_fallback_url_hashmap
-                        .get(&category)
-                        .cloned()
-                })
-                .unwrap_or(app_state.default_fallback_url.clone());
-            Ok(Redirect::to(fallback_url.clone()))
-        }
-    }
+    let base_url = get_base_url_by_short_code_with_fallback(
+        url_short_code,
+        &app_state.redis_pool,
+        app_state.secondary_redis_pool.as_deref(),
+        &fallback_url,
+    )
+    .await?;
+
+    info!("redirecting to: {}", base_url);
+    Ok(Redirect::to(base_url.to_string()))
 }

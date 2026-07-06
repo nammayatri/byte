@@ -1,4 +1,19 @@
-let redis_cfg = {
+let RedisCfg = {
+    host : Text,
+    port : Natural,
+    cluster_enabled : Bool,
+    cluster_urls : List Text,
+    use_legacy_version : Bool,
+    pool_size : Natural,
+    reconnect_max_attempts : Natural,
+    reconnect_delay : Natural,
+    default_ttl : Natural,
+    default_hash_ttl : Natural,
+    stream_read_count : Natural,
+    partition : Natural,
+}
+
+let redis_cfg : RedisCfg = {
     host = "0.0.0.0",
     port = 30001,
     cluster_enabled = True,
@@ -12,6 +27,9 @@ let redis_cfg = {
     stream_read_count = 100,
     partition = 0,
 }
+
+-- Set to `Some { ... }` (a RedisCfg record) to enable read-fallback to a secondary redis
+let secondary_redis_cfg = None RedisCfg
 
 let LogLevel = < TRACE | DEBUG | INFO | WARN | ERROR | OFF >
 
@@ -30,6 +48,7 @@ in {
     workers = 1,
     logger_cfg = logger_cfg,
     redis_cfg = redis_cfg,
+    secondary_redis_cfg = secondary_redis_cfg,
     redis_expiry = 86400,
     request_timeout = 9000,
     log_unprocessible_req_body = ["UNPROCESSIBLE_REQUEST", "REQUEST_TIMEOUT", "LARGE_PAYLOAD_SIZE"],

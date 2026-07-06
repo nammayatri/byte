@@ -8,6 +8,7 @@
 use crate::{common::types::*, redis::keys::*, tools::error::AppError};
 use reqwest::Url;
 use shared::redis::types::RedisConnectionPool;
+use tracing::*;
 
 pub async fn set_base_url_for_short_code(
     base_url: &Url,
@@ -42,4 +43,36 @@ pub async fn get_base_url_by_short_code(
         })?)),
         None => Ok(None),
     }
+}
+
+pub async fn get_base_url_by_short_code_with_fallback(
+    url_short_code: UrlShortCode,
+    primary_redis_pool: &RedisConnectionPool,
+    secondary_redis_pool: Option<&RedisConnectionPool>,
+    default_url: &str,
+) -> Result<Url, AppError> {
+    if let Some(base_url) =
+        get_base_url_by_short_code(url_short_code.clone(), primary_redis_pool).await?
+    {
+        return Ok(base_url);
+    }
+
+    if let Some(secondary_redis_pool) = secondary_redis_pool {
+        info!(
+            "Short code: {} not found in primary redis, checking secondary redis",
+            url_short_code.0
+        );
+        if let Some(base_url) =
+            get_base_url_by_short_code(url_short_code.clone(), secondary_redis_pool).await?
+        {
+            return Ok(base_url);
+        }
+    }
+
+    error!(
+        "No URL found for short code: {}, falling back to default: {}",
+        url_short_code.0, default_url
+    );
+    Url::parse(default_url)
+        .map_err(|error| AppError::InternalError(format!("URL parsing failed: {}", error)))
 }
