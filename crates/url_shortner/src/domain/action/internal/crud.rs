@@ -42,6 +42,12 @@ pub async fn generate_url(
 
     info!("Parsed URL: {:?}", base_url);
 
+    let shortened_base_url = if req.short_url_host_from_base_url == Some(true) {
+        shortened_base_url_on_host(&app_state.shortened_base_url, &base_url)?
+    } else {
+        app_state.shortened_base_url.clone()
+    };
+
     let expiry_seconds: Option<u32> = req
         .expiry_in_hours
         .map(|hours| 3600 * Into::<u32>::into(hours));
@@ -75,10 +81,7 @@ pub async fn generate_url(
         .unwrap_or(format!("/{}", final_short_code));
 
     let url_expiry = TimeStamp(Utc::now() + Duration::seconds(redis_expiry_in_s.into()));
-    let short_url = format!(
-        "{}{}",
-        app_state.shortened_base_url, final_short_code_formatted
-    );
+    let short_url = format!("{}{}", shortened_base_url, final_short_code_formatted);
     info!(
         "Generated short url: {} with expiry ts: {:?}",
         short_url, url_expiry.0
@@ -88,6 +91,22 @@ pub async fn generate_url(
         short_url,
         url_expiry,
     })
+}
+
+fn shortened_base_url_on_host(
+    shortened_base_url: &str,
+    base_url: &Url,
+) -> Result<String, AppError> {
+    let mut url = Url::parse(shortened_base_url).map_err(|error| {
+        AppError::InternalError(format!("shortened_base_url parsing failed: {}", error))
+    })?;
+    url.set_scheme(base_url.scheme())
+        .and_then(|_| url.set_host(base_url.host_str()).map_err(|_| ()))
+        .and_then(|_| url.set_port(base_url.port()))
+        .map_err(|_| {
+            AppError::InvalidRequest(format!("No short url host in base url: {}", base_url))
+        })?;
+    Ok(url.as_str().trim_end_matches('/').to_string())
 }
 
 async fn set_custom_code(
