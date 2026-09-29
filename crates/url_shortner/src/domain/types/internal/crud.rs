@@ -16,6 +16,7 @@ pub struct GenerateShortUrlRequest {
     pub short_code_length: Option<u8>,
     pub expiry_in_hours: Option<u8>,
     pub url_category: Option<String>,
+    pub short_url_host_from_base_url: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
